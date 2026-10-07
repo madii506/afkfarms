@@ -45,18 +45,27 @@
   }
   const label = p => esc(p.symbol ? '$' + p.symbol : short(p.mint));
 
-  /* ---------- farm levels (cosmetic, from position size in SOL) ---------- */
-  const LEVELS = [
-    { n: 'Seed', min: 0, d: 'Something is sprouting.' },
-    { n: 'Sapling', min: 0.1, d: 'A first plot on the board.' },
-    { n: 'Field', min: 1, d: 'Rows of crops and a small chest.' },
-    { n: 'Ranch', min: 5, d: 'Fences, a barn and a steady harvest.' },
-    { n: 'Estate', min: 25, d: 'Gold in the chest every day.' },
-    { n: 'Kingdom', min: 100, d: 'A whole island floating on fees.' },
-  ];
-  const levelOf = v => { let i = 0; LEVELS.forEach((l, k) => { if (v >= l.min) i = k; }); return i; };
-  const badge = v => { const i = levelOf(v); return `<span class="badge l${i}"><i></i>${LEVELS[i].n}</span>`; };
-  $('#lvlList').innerHTML = LEVELS.slice(1).map((l, k) => `<div class="lv"><span class="badge l${k + 1}"><i></i>Lv ${k + 1}</span><h3>${l.n}</h3><p>${l.d}</p><span class="need">${l.min} SOL+ planted</span></div>`).join('');
+  /* ---------- rolling digits: every number on the page rolls to its real value ---------- */
+  const isD = c => c >= '0' && c <= '9';
+  const STRIP = '<span class="dg"><span>' + '0123456789'.split('').map(n => `<i>${n}</i>`).join('') + '</span></span>';
+  function odo(el, text) {
+    if (!el) return;
+    text = String(text);
+    if (el._t === text) return;
+    const prev = el._t, chars = [...text];
+    const same = prev != null && prev.length === text.length && [...prev].every((c, i) => isD(c) === isD(chars[i]) && (isD(c) || c === chars[i]));
+    if (!same) {
+      el.innerHTML = chars.map(c => isD(c) ? STRIP : `<span class="sc">${esc(c)}</span>`).join('');
+      el.classList.add('odo');
+    }
+    el._t = text;
+    const strips = $$('.dg > span', el);
+    const go = () => { let k = 0; chars.forEach(c => { if (!isD(c)) return; const s = strips[k++]; if (s) { s.style.transitionDelay = (k * 35) + 'ms'; s.style.transform = `translateY(calc(var(--h) * ${-+c}))`; } }); };
+    if (same) go(); else setTimeout(go, 40);
+    el.setAttribute('aria-label', text);
+  }
+  const nfmt = (n, d = 0) => (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const tiny = n => { n = Number(n) || 0; if (n === 0) return '0'; const a = Math.abs(n); return a >= 100 ? nfmt(n, 0) : a >= 1 ? n.toFixed(2) : a >= 0.01 ? n.toFixed(4) : a >= 1e-6 ? String(+n.toPrecision(3)) : '<0.000001'; };
 
   /* ---------- wallet (Wallet Standard) ---------- */
   const W = { list: [], w: null, acct: null };
@@ -195,24 +204,50 @@
   function renderStats() {
     const P = S.pools; if (!P.length) return;
     const tvl = P.reduce((a, p) => a + p.tvlSol, 0), vol = P.reduce((a, p) => a + p.volSol, 0), fees = P.reduce((a, p) => a + p.volSol * p.lpBps / 10000, 0);
-    const set = (k, v) => { const el = $(`#stats b[data-k="${k}"]`); if (el) el.innerHTML = v; };
-    set('n', P.length); set('tvl', compact(tvl) + '<small>SOL</small>'); set('vol', compact(vol) + '<small>SOL</small>'); set('fees', compact(fees) + '<small>SOL</small>');
-    $('#kickN').textContent = P.length + ' farms checked on-chain';
+    const set = (k, v) => odo($(`#stats b[data-k="${k}"]`), v);
+    set('n', nfmt(P.length)); set('tvl', nfmt(tvl)); set('vol', nfmt(vol)); set('fees', nfmt(fees, fees < 1000 ? 1 : 0));
+    $('#kickN').textContent = P.length + ' farms live on PumpSwap';
   }
-  function renderTopFarm() {
-    const box = $('#topFarm .tf-body');
-    const big = S.pools.filter(p => p.tvlSol >= 50).sort((a, b) => b.yieldDay - a.yieldDay);
-    const list = big.length ? big : S.pools.slice().sort((a, b) => b.yieldDay - a.yieldDay);
-    if (!list.length) { box.innerHTML = `<div class="empty" style="padding:20px 0">${ART}<b>The market is quiet.</b></div>`; return; }
-    const p = list[0], next = list.slice(1, 4), max = Math.max(...list.slice(0, 4).map(x => x.yieldDay));
-    box.innerHTML = `
-      <div class="tf-top">${tokImg(p)}<div><b>${esc(p.name || short(p.mint))}</b><small>${label(p)} · ${compact(p.tvlSol)} SOL pool</small></div></div>
-      <div class="tf-big">${pctTxt(p.yieldDay)}<small>a day</small></div>
-      <div class="tf-sub">1 SOL planted here would have made about <b>${fsol(p.yieldDay)} SOL</b> in fees over the last 24h.</div>
-      <div class="tf-next"><p>Next best farms</p>${next.map(x => `<button type="button" data-pool="${esc(x.pool)}"><b>${esc(x.name || short(x.mint))}</b><span class="mbar"><i style="width:${Math.max(4, Math.round(x.yieldDay / max * 100))}%"></i></span><em>${pctTxt(x.yieldDay, 1)}</em></button>`).join('')}</div>
-      <button class="btn grass tf-go" type="button" data-pool="${esc(p.pool)}">Plant on this farm</button>`;
+
+  /* ---------- hero flip card: the real top farms, one at a time ---------- */
+  const F = { list: [], i: 0, built: false };
+  function flipList() {
+    const big = S.pools.filter(p => p.tvlSol >= 25 && p.volSol > 0).sort((a, b) => b.yieldDay - a.yieldDay);
+    F.list = (big.length ? big : S.pools.slice().sort((a, b) => b.yieldDay - a.yieldDay)).slice(0, 8);
+    if (F.list.length) $('#flip').classList.add('run');
+    if (F.i >= F.list.length) F.i = 0;
+    renderFlip(true);
   }
-  $('#topFarm').addEventListener('click', e => { const b = e.target.closest('[data-pool]'); if (b) openPool(b.dataset.pool); });
+  function renderFlip(soft) {
+    const face = $('#fcFace'), p = F.list[F.i];
+    if (!p) { face.innerHTML = `<div class="empty" style="padding:18px 0"><b>The market is quiet.</b></div>`; F.built = false; return; }
+    if (!F.built) {
+      face.innerHTML = `
+        <div class="fc-id" id="fcId"></div>
+        <div class="fc-big"><b id="fcY"></b><span>a day</span></div>
+        <div class="fc-grid"><div><span>Pool · SOL</span><b id="fcTvl"></b></div><div><span>24h vol · SOL</span><b id="fcVol"></b></div><div><span>Trades 24h</span><b id="fcTx"></b></div></div>
+        <div class="fc-foot"><span>1 SOL earns <b id="fcEarn"></b> SOL a day</span><button class="btn grass sm" type="button" id="fcGo">Plant</button></div>`;
+      F.built = true;
+    }
+    const id = $('#fcId');
+    const html = `${tokImg(p)}<div class="fc-nm"><b>${esc(p.name || short(p.mint))}</b><small>${label(p)}${p.created ? ' · ' + age(p.created) + ' old' : ''}</small></div><span class="fc-chg ${p.change24 >= 0 ? 'up' : 'down'}">${p.change24 >= 0 ? '+' : ''}${(+p.change24).toFixed(1)}%</span>`;
+    if (soft && id.dataset.pool === p.pool) id.innerHTML = html;
+    else { id.classList.remove('in'); void id.offsetWidth; id.innerHTML = html; id.classList.add('in'); }
+    id.dataset.pool = p.pool;
+    odo($('#fcY'), (p.yieldDay * 100).toFixed(2) + '%');
+    odo($('#fcTvl'), nfmt(p.tvlSol)); odo($('#fcVol'), nfmt(p.volSol)); odo($('#fcTx'), p.txns24 ? nfmt(p.txns24) : '0');
+    odo($('#fcEarn'), tiny(p.yieldDay));
+    $('#fcIdx').textContent = (F.i + 1) + '/' + F.list.length;
+    if (!soft) { const pr = $('#fcProg'); pr.style.animation = 'none'; void pr.offsetWidth; pr.style.animation = ''; }
+  }
+  const flipTo = d => { if (!F.list.length) return; F.i = (F.i + d + F.list.length) % F.list.length; renderFlip(false); };
+  $('#fcPrev').addEventListener('click', () => flipTo(-1));
+  $('#fcNext').addEventListener('click', () => flipTo(1));
+  $('#fcProg').addEventListener('animationend', () => flipTo(1));
+  $('#flip').addEventListener('click', e => { if (e.target.closest('#fcGo, .fc-id')) { const p = F.list[F.i]; if (p) openPool(p.pool); } });
+  let fx0 = null;
+  $('#flip').addEventListener('touchstart', e => { fx0 = e.touches[0].clientX; }, { passive: true });
+  $('#flip').addEventListener('touchend', e => { if (fx0 == null) return; const dx = e.changedTouches[0].clientX - fx0; fx0 = null; if (Math.abs(dx) > 40) flipTo(dx < 0 ? 1 : -1); });
   function tickUpdated() {
     const el = $('#updated span'); if (!S.updated) return;
     const s = Math.round((Date.now() - S.updated) / 1000);
@@ -224,12 +259,13 @@
     try {
       const j = await api('pools');
       S.pools = j.pools || []; S.updated = j.updated || Date.now();
-      renderPools(); renderStats(); renderTopFarm(); renderTicker(); calcPools(); tickUpdated();
+      renderPools(); renderStats(); flipList(); renderTicker(); calcPools(); liveFarms(); tickUpdated();
     } catch (e) {
       if (quiet) return;
       $('#rows').innerHTML = `<div class="empty">${ART}<b>Could not reach the market.</b><button class="btn sm" id="retry" type="button" style="margin-top:10px">Retry</button></div>`;
       $('#retry').onclick = () => loadPools();
-      $('#updated span').textContent = 'Offline'; $('#kickN').textContent = 'market offline';
+      $('#updated span').textContent = 'Offline'; $('#kickN').textContent = 'Market offline';
+      $('#fcFace').innerHTML = `<div class="empty" style="padding:18px 0"><b>Market offline.</b>Retrying in a minute.</div>`; F.built = false;
     }
   }
   setInterval(() => { if (!document.hidden && !S.busy) loadPools(true); }, 60000);
@@ -297,11 +333,13 @@
         <div><span>Market cap</span><b>${compact(p.mcapSol)} SOL</b></div>
       </div>
       <p class="feeline">Each trade pays ${((f.lp + f.protocol + f.creator) / 100).toFixed(2)}%: <b>${(f.lp / 100).toFixed(2)}% to this farm's LPs</b>, ${(f.protocol / 100).toFixed(2)}% to PumpSwap, ${(f.creator / 100).toFixed(2)}% to the coin's creator.</p>
-      ${hasPos ? `<div class="you">${badge(you.valueSol)}<span>Your farm: <b>${fsol(you.valueSol)} SOL</b> · ${pctTxt(you.share, 3)} of the pool · about ${fsol(you.share * p.volSol * p.lpBps / 10000)} SOL a day</span></div>` : ''}
+      ${hasPos ? `<div class="you"><span>Your farm: <b>${fsol(you.valueSol)} SOL</b> · ${pctTxt(you.share, 3)} of the pool · about ${fsol(you.share * p.volSol * p.lpBps / 10000)} SOL a day</span></div>` : ''}
       ${!p.solPool ? `<div class="status show err">This pool is not paired with SOL. AFK handles SOL pools only for now.</div>` : `
       <div class="tabs"><button type="button" data-t="add" class="${S.tab === 'add' ? 'on' : ''}">Plant</button><button type="button" data-t="pair" class="${S.tab === 'pair' ? 'on' : ''}">Pair coins</button><button type="button" data-t="remove" class="${S.tab === 'remove' ? 'on' : ''}">Harvest</button></div>
       <div id="pane"></div>`}
-      <div class="status" id="st"></div>`;
+      <div class="status" id="st"></div>
+      <div class="d-trades" id="dTr"><div class="dt-head"><span>Last trades</span><em id="dTrU"><i class="pulse"></i>live</em></div><div class="dt-list" id="dTrL"><div class="skel-line w80"></div><div class="skel-line w60"></div></div></div>`;
+    drawerTrades(p);
     if (S.st && S.st.pool === p.pool && S.st.tab === S.tab) { const st = $('#st'); st.className = S.st.cls; st.innerHTML = S.st.html; }
     $$('.tabs button', el).forEach(b => b.onclick = () => { if (S.busy) return; S.tab = b.dataset.t; S.st = null; renderDrawer(); });
     if (p.solPool) { if (S.tab === 'add') paneAdd(p, sym); else if (S.tab === 'pair') panePair(p, sym, hasCoin); else paneRemove(p, sym); }
@@ -330,7 +368,6 @@
         <div><span>Swapped for ${esc(sym)}</span><b>${fsol(e.swap)} SOL → ${compact(e.coin / Math.pow(10, dec))}</b></div>
         <div><span>Added to the pool</span><b>${fsol(e.dep)} SOL + ${compact(e.coin / Math.pow(10, dec))}</b></div>
         <div><span>Your share of the pool</span><b>${pctTxt(e.share, 3)}</b></div>
-        <div><span>Farm level</span><b>${badge(e.value)}</b></div>
         <div class="hi"><span>At the last 24h pace</span><b>${p.volSol ? '≈ ' + fsol(e.day) + ' SOL / day' : '—'}</b></div>` : '';
       const sim = $('#sim');
       if (!e) { sim.hidden = true; return; }
@@ -416,19 +453,18 @@
   /* ---------- my farms ---------- */
   function renderPositions() {
     const box = $('#pos'); $('#refreshPos').hidden = !W.w;
-    if (!W.w) { box.innerHTML = `<div class="connect-card">${ART}<div><h3>Every farm you hold, in one place</h3><p>Connect a wallet to see each PumpSwap pool it is in, what the position is worth, its level, and what it earns a day. Positions added on pump.fun show up too.</p></div><button class="btn grass" id="cw2" type="button">Connect wallet</button></div>`; $('#cw2').onclick = connect; return; }
+    if (!W.w) { box.innerHTML = `<div class="connect-card">${ART}<div><h3>Every farm you hold, in one place</h3><p>Connect to see every pool you're in, what it's worth and what it earns a day.</p></div><button class="btn grass" id="cw2" type="button">Connect wallet</button></div>`; $('#cw2').onclick = connect; return; }
     if (S.positions == null) { box.innerHTML = '<div class="skel" style="border-radius:8px;border:0"></div>'; return; }
     if (S.positions.error) { box.innerHTML = `<div class="connect-card"><p>${esc(S.positions.error)}</p><button class="btn sm" id="rp" type="button">Retry</button></div>`; $('#rp').onclick = loadPositions; return; }
-    if (!S.positions.length) { box.innerHTML = `<div class="connect-card">${ART}<div><h3>No farms yet</h3><p>Pick a farm from the board and plant from SOL. It shows up here as soon as it lands.</p></div><a class="btn grass" href="#farms">See the farms</a></div>`; return; }
+    if (!S.positions.length) { box.innerHTML = `<div class="connect-card">${ART}<div><h3>No farms yet</h3><p>Plant on any farm and it shows up here.</p></div><a class="btn grass" href="#farms">See the farms</a></div>`; return; }
     const tot = S.positions.reduce((a, p) => a + p.valueSol, 0), day = S.positions.reduce((a, p) => a + (p.earnDaySol || 0), 0);
     box.innerHTML = `<div class="pos-grid">
-      <div class="pcard total"><span class="c-farm"><span class="nm"><b>All farms</b><small>${S.positions.length} pool${S.positions.length > 1 ? 's' : ''}</small></span></span><span><span class="lbl">Value</span><span class="val">${fsol(tot)} SOL</span></span><span><span class="lbl">Per day</span><span class="val">≈ ${fsol(day)} SOL</span></span><span><span class="lbl">Level</span>${badge(tot)}</span><span></span><span></span></div>
+      <div class="pcard total"><span class="c-farm"><span class="nm"><b>All farms</b><small>${S.positions.length} pool${S.positions.length > 1 ? 's' : ''}</small></span></span><span><span class="lbl">Value</span><span class="val">${fsol(tot)} SOL</span></span><span><span class="lbl">Per day</span><span class="val">≈ ${fsol(day)} SOL</span></span><span></span><span></span></div>
       ${S.positions.map(p => `
       <div class="pcard"><span class="c-farm">${tokImg(p)}<span class="nm"><b>${esc(p.name || short(p.mint))}</b><small>${label(p)}</small></span></span>
         <span><span class="lbl">Value</span><span class="val">${fsol(p.valueSol)} SOL</span></span>
         <span><span class="lbl">Share</span><span class="val">${pctTxt(p.share, 3)}</span></span>
         <span><span class="lbl">Per day</span><span class="val">${p.volSol ? '≈ ' + fsol(p.earnDaySol) : '—'}</span></span>
-        <span><span class="lbl">Level</span>${badge(p.valueSol)}</span>
         <span class="acts"><button class="btn sm grass" data-a="add" data-pool="${esc(p.pool)}" type="button">Plant</button><button class="btn sm gold" data-a="remove" data-pool="${esc(p.pool)}" type="button">Harvest</button></span></div>`).join('')}</div>`;
   }
   $('#pos').addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (!b) return; openPool(b.dataset.pool, false, b.dataset.a); });
@@ -450,6 +486,7 @@
   }
   $('#ticker').addEventListener('click', e => { const t = e.target.closest('[data-pool]'); if (t) openPool(t.dataset.pool); });
 
+  const AMTS = [0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
   const C = { list: [], p: null, amt: 1 };
   function calcPools() {
     C.list = S.pools.filter(p => p.tvlSol >= 25).sort((a, b) => b.yieldDay - a.yieldDay).slice(0, 30);
@@ -457,27 +494,140 @@
     if (!C.p || !C.list.some(p => p.pool === C.p.pool)) C.p = C.list[0] || null;
     else C.p = C.list.find(p => p.pool === C.p.pool);
     $('#cList').innerHTML = C.list.map(p => `<button type="button" role="option" data-pool="${esc(p.pool)}" class="${C.p && p.pool === C.p.pool ? 'on' : ''}">${tokImg(p)}<b>${esc(p.name || short(p.mint))}</b><em>${pctTxt(p.yieldDay, 1)}</em></button>`).join('');
+    const top = C.list.slice(0, 6), mx = Math.max(...top.map(p => p.yieldDay), 1e-9);
+    $('#cQuick').innerHTML = top.map(p => `<button type="button" data-pool="${esc(p.pool)}" class="${C.p && p.pool === C.p.pool ? 'on' : ''}">${tokImg(p)}<b>${label(p)}</b><span class="mbar"><i style="width:${Math.max(4, Math.round(p.yieldDay / mx * 100))}%"></i></span><em>${pctTxt(p.yieldDay, 2)}</em></button>`).join('');
     calcRender();
   }
+  $('#cQuick').addEventListener('click', e => { const b = e.target.closest('[data-pool]'); if (!b) return; C.p = C.list.find(p => p.pool === b.dataset.pool); $$('#cQuick button').forEach(x => x.classList.toggle('on', x === b)); $$('#cList button').forEach(x => x.classList.toggle('on', x.dataset.pool === b.dataset.pool)); calcRender(); });
   function calcRender() {
     const p = C.p, v = C.amt;
     $('#cCur').innerHTML = p ? `${tokImg(p)}<span class="t">${esc(p.name || short(p.mint))}<small>${label(p)} · ${compact(p.tvlSol)} SOL pool · ${pctTxt(p.yieldDay, 1)} a day</small></span>` : 'No farms loaded';
-    const set = (id, t) => { $(id).textContent = t; };
-    if (!p || !(v > 0)) { ['#cDay', '#cWeek', '#cMonth', '#cShare'].forEach(id => set(id, '—')); $('#cSim').innerHTML = ''; $('#cLvl').innerHTML = ''; return; }
+    $('#cAmtV').textContent = v + ' SOL';
+    if (!p || !(v > 0)) { odo($('#cDay'), '0'); ['#cWeek', '#cMonth', '#cShare'].forEach(id => odo($(id), '0')); $('#cSim').innerHTML = ''; return; }
     const dep = v * (1 - (S.cfg.feeBps || 0) / 1e4) * (1 - p.totalBps / 2e4);
     const share = dep / (p.tvlSol + dep), day = share * p.volSol * p.lpBps / 1e4;
-    set('#cDay', fsol(day)); set('#cWeek', fsol(day * 7) + ' SOL'); set('#cMonth', fsol(day * 30) + ' SOL'); set('#cShare', pctTxt(share, 3));
+    odo($('#cDay'), tiny(day)); odo($('#cWeek'), tiny(day * 7)); odo($('#cMonth'), tiny(day * 30)); odo($('#cShare'), (share * 100).toFixed(share < 0.001 ? 4 : 3) + '%');
     const sym = p.symbol ? '$' + p.symbol : 'the coin';
     $('#cSim').innerHTML = priceTable(dep, v, sym);
-    $('#cLvl').innerHTML = `<span class="lbl">Farm level</span>${badge(dep)}`;
   }
+  const range = $('#cRange');
+  range.max = AMTS.length - 1; range.value = AMTS.indexOf(1);
+  const paintRange = () => range.style.setProperty('--f', (range.value / range.max * 100) + '%');
+  $$('.range-ticks span').forEach(t => { const i = AMTS.indexOf(+t.textContent); t.style.left = `calc(11px + (100% - 22px) * ${i / (AMTS.length - 1)})`; t.onclick = () => { range.value = i; range.dispatchEvent(new Event('input')); }; });
+  range.addEventListener('input', () => { C.amt = AMTS[+range.value] || 1; paintRange(); calcRender(); });
+  paintRange();
   const pickClose = () => { $('#cList').hidden = true; $('#cPick').classList.remove('open'); };
   $('#cPickBtn').addEventListener('click', e => { e.stopPropagation(); const open = $('#cList').hidden; $('#cList').hidden = !open; $('#cPick').classList.toggle('open', open); });
-  $('#cList').addEventListener('click', e => { const b = e.target.closest('[data-pool]'); if (!b) return; C.p = C.list.find(p => p.pool === b.dataset.pool); $$('#cList button').forEach(x => x.classList.toggle('on', x === b)); pickClose(); calcRender(); });
+  $('#cList').addEventListener('click', e => { const b = e.target.closest('[data-pool]'); if (!b) return; C.p = C.list.find(p => p.pool === b.dataset.pool); $$('#cList button').forEach(x => x.classList.toggle('on', x === b)); $$('#cQuick button').forEach(x => x.classList.toggle('on', x.dataset.pool === b.dataset.pool)); pickClose(); calcRender(); });
   document.addEventListener('click', e => { if (!e.target.closest('#cPick')) pickClose(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') pickClose(); });
-  $('#cAmts').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; C.amt = +b.dataset.v; $('#cAmt').value = ''; $$('#cAmts .chip').forEach(x => x.classList.toggle('on', x === b)); calcRender(); });
-  $('#cAmt').addEventListener('input', e => { const v = parseFloat(e.target.value.replace(',', '.')); if (v > 0) { C.amt = v; $$('#cAmts .chip').forEach(x => x.classList.remove('on')); } calcRender(); });
+
+  /* ---------- live trades: real swaps from the pool, newest first ---------- */
+  const L = { farms: [], pool: null, seen: new Set(), trades: [], ok: 0, err: false, busy: false, inView: false, timer: 0 };
+  const ago = t => { const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + 'm' : Math.floor(s / 3600) + 'h'; };
+  function liveFarms() {
+    const list = S.pools.filter(p => p.tvlSol >= 25 && p.volSol > 0).sort((a, b) => (b.txns24 || b.volSol) - (a.txns24 || a.volSol)).slice(0, 6);
+    if (!list.length) return;
+    const keep = L.pool && list.some(p => p.pool === L.pool);
+    L.farms = list;
+    if (!keep) L.pool = list[0].pool;
+    $('#liveTabs').innerHTML = list.map(p => `<button type="button" role="tab" data-pool="${esc(p.pool)}" class="${p.pool === L.pool ? 'on' : ''}" aria-selected="${p.pool === L.pool}">${tokImg(p)}<b>${label(p)}</b></button>`).join('');
+    if (!keep) liveSwitch(L.pool);
+  }
+  $('#liveTabs').addEventListener('click', e => { const b = e.target.closest('[data-pool]'); if (!b || b.dataset.pool === L.pool) return; $$('#liveTabs button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); }); liveSwitch(b.dataset.pool); });
+  function liveSwitch(pool) {
+    L.pool = pool; L.seen = new Set(); L.trades = []; L.err = false;
+    $('#feed').innerHTML = '<div class="skel-line w80"></div><div class="skel-line w60"></div><div class="skel-line w80"></div>';
+    ['#lsN', '#lsFee', '#lsYou'].forEach(id => odo($(id), '0'));
+    liveLoad();
+  }
+  const farmOf = pool => S.pools.find(p => p.pool === pool) || {};
+  async function liveLoad() {
+    if (!L.pool || L.busy) return; L.busy = true;
+    const pool = L.pool;
+    try {
+      const j = await api('trades?pool=' + encodeURIComponent(pool));
+      if (pool !== L.pool) return;
+      L.err = false; L.ok = Date.now();
+      liveRender(j.trades || []);
+    } catch (e) {
+      if (pool !== L.pool) return;
+      L.err = true;
+      if (!L.trades.length) $('#feed').innerHTML = `<div class="feed-empty"><b>Trade feed offline.</b>Retrying in a few seconds. No trades are shown until real ones load.</div>`;
+    } finally { L.busy = false; liveTick(); }
+  }
+  function liveRender(list) {
+    const p = farmOf(L.pool), bps = p.lpBps || 0;
+    const fresh = list.filter(t => !L.seen.has(t.tx + t.t + t.sol));
+    const first = !L.trades.length;
+    list.forEach(t => L.seen.add(t.tx + t.t + t.sol));
+    L.trades = list;
+    if (!list.length) { $('#feed').innerHTML = `<div class="feed-empty"><b>No trades in the last few minutes.</b>New ones land here as they happen.</div>`; }
+    else {
+      const freshSet = new Set(fresh.map(t => t.tx + t.t + t.sol));
+      $('#feed').innerHTML = list.slice(0, 12).map((t, i) => {
+        const fee = t.sol * bps / 1e4, isNew = freshSet.has(t.tx + t.t + t.sol);
+        return `<a class="trow ${t.kind === 'sell' ? 'sell' : 'buy'}${isNew ? ' new' : ''}" style="animation-delay:${first ? i * 60 : 0}ms" href="https://solscan.io/tx/${esc(t.tx)}" target="_blank" rel="noopener">
+          <span class="k">${t.kind === 'sell' ? 'SELL' : 'BUY'}</span>
+          <b>${tiny(t.sol)} SOL</b>
+          <em>+${tiny(fee)} to farmers</em>
+          <time data-t="${t.t}">${ago(t.t)}</time></a>`;
+      }).join('');
+      if (!first && fresh.length) drop(fresh.slice(0, 5).map(t => t.sol * bps / 1e4));
+    }
+    const fees = list.reduce((a, t) => a + t.sol * bps / 1e4, 0);
+    const tvl = p.tvlSol || 0;
+    odo($('#lsN'), nfmt(list.length));
+    odo($('#lsFee'), tiny(fees));
+    odo($('#lsYou'), tiny(tvl ? fees / (tvl + 1) : 0));
+    if (first && list.length) drop(list.slice(0, 4).map(t => t.sol * bps / 1e4));
+  }
+  function drop(fees) {
+    const box = $('#drops');
+    fees.forEach((f, i) => setTimeout(() => {
+      const d = document.createElement('span'); d.className = 'drop';
+      d.style.left = (18 + Math.random() * 64) + '%';
+      d.innerHTML = `<img src="/img/coin.png" alt=""><em>+${tiny(f)}</em>`;
+      d.addEventListener('animationend', () => d.remove());
+      box.appendChild(d);
+      const ch = $('.m-chest'); ch.classList.remove('hit'); void ch.offsetWidth; ch.classList.add('hit');
+    }, i * 420));
+  }
+  function liveTick() {
+    $$('#feed time').forEach(t => { t.textContent = ago(+t.dataset.t); });
+    const el = $('#liveUpd span');
+    if (L.err) { el.textContent = 'Feed offline · retrying'; $('#liveUpd').classList.add('off'); return; }
+    $('#liveUpd').classList.remove('off');
+    if (!L.ok) return;
+    const s = Math.round((Date.now() - L.ok) / 1000);
+    const span = L.trades.length > 1 ? ' · last ' + ago(L.trades[L.trades.length - 1].t) : '';
+    el.textContent = 'Live' + span + ' · updated ' + (s < 3 ? 'now' : s + 's ago');
+  }
+  setInterval(liveTick, 1000);
+  setInterval(() => { if (!document.hidden && L.inView) liveLoad(); }, 10000);
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { es.forEach(e => { const was = L.inView; L.inView = e.isIntersecting; if (L.inView && !was && L.ok && Date.now() - L.ok > 9000) liveLoad(); }); }, { rootMargin: '200px' }).observe($('#live'));
+  else L.inView = true;
+
+  /* drawer: last trades for the open farm */
+  const DT = { pool: null, list: null, t: 0, busy: false };
+  function drawTrades(p) {
+    const box = $('#dTrL'); if (!box) return;
+    if (DT.pool !== p.pool || !DT.list) return;
+    if (DT.list.err) { box.innerHTML = `<p class="dt-off">Trade feed offline right now.</p>`; return; }
+    if (!DT.list.length) { box.innerHTML = `<p class="dt-off">No trades in the last few minutes.</p>`; return; }
+    box.innerHTML = DT.list.slice(0, 6).map(t => `<a class="dt ${t.kind === 'sell' ? 'sell' : 'buy'}" href="https://solscan.io/tx/${esc(t.tx)}" target="_blank" rel="noopener"><span class="k">${t.kind === 'sell' ? 'SELL' : 'BUY'}</span><b>${tiny(t.sol)} SOL</b><em>+${tiny(t.sol * (p.lpBps || 0) / 1e4)}</em><time data-t="${t.t}">${ago(t.t)}</time></a>`).join('');
+  }
+  async function drawerTrades(p) {
+    if (!p || !p.pool || !p.solPool) { const d = $('#dTr'); if (d) d.hidden = true; return; }
+    if (DT.pool === p.pool && DT.list && Date.now() - DT.t < 10000) return drawTrades(p);
+    if (DT.pool !== p.pool) DT.list = null;
+    DT.pool = p.pool; drawTrades(p);
+    if (DT.busy) return; DT.busy = true;
+    try { const j = await api('trades?pool=' + encodeURIComponent(p.pool)); if (DT.pool === p.pool) { DT.list = j.trades || []; DT.t = Date.now(); } }
+    catch (e) { if (DT.pool === p.pool) { DT.list = Object.assign([], { err: true }); DT.t = Date.now(); } }
+    finally { DT.busy = false; if (S.pool && S.pool.pool === p.pool) drawTrades(S.pool); }
+  }
+  setInterval(() => { if (S.pool && S.pool.pool && S.pool.solPool && !document.hidden) { $$('#dTrL time').forEach(t => { t.textContent = ago(+t.dataset.t); }); if (Date.now() - DT.t > 10000) drawerTrades(S.pool); } }, 1000);
   $('#cGo').addEventListener('click', () => { if (C.p) openPool(C.p.pool, false, 'add', String(C.amt)); });
 
   /* ---------- config + nav ---------- */
