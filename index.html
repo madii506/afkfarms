@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AFK</title>
+<meta name="description" content="Every pool is a farm. Go AFK. Add liquidity to any pump.fun PumpSwap pool in one click from SOL and earn a cut of every trade while you're away.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://afkfarms.vercel.app/">
+<meta property="og:title" content="AFK · Every pool is a farm.">
+<meta property="og:description" content="One-click liquidity for any pump.fun PumpSwap pool. Put in SOL, earn a cut of every trade while you're AFK, pull out any time.">
+<meta property="og:image" content="https://afkfarms.vercel.app/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AFK · Every pool is a farm.">
+<meta name="twitter:description" content="One-click liquidity for any pump.fun PumpSwap pool. Put in SOL, earn a cut of every trade while you're AFK, pull out any time.">
+<meta name="twitter:image" content="https://afkfarms.vercel.app/img/og.png">
+<meta name="theme-color" content="#4aaeff">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/icon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/img/icon-64.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/pixelify.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/afk.css?v=1">
+</head>
+<body>
+<header class="nav top" id="nav">
+  <a href="#top" class="brand" aria-label="AFK home"><img src="/img/logo.png" alt="AFK" width="92" height="31"></a>
+  <nav class="links" id="links" aria-label="Sections">
+    <a href="#farms">Farms</a>
+    <a href="#calc">Calculator</a>
+    <a href="#mine">My farms</a>
+    <a href="#how">How it works</a>
+    <a href="#levels">Levels</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <div class="nav-r"><button class="btn wallet" id="walletBtn" type="button"><i class="dot"></i><span id="walletLabel">Connect wallet</span></button></div>
+</header>
+
+<section class="hero" id="top">
+  <div class="clouds" aria-hidden="true"><i class="cl c1"></i><i class="cl c2"></i><i class="cl c3"></i><i class="cl c4"></i></div>
+  <div class="hero-in">
+    <div class="hero-copy">
+      <p class="kicker"><i class="pulse"></i>Live on PumpSwap · <span id="kickN">reading pools</span></p>
+      <h1>Every pool is a farm.<span>Go AFK.</span></h1>
+      <p class="lede">Every pump.fun coin that graduates gets a PumpSwap pool, and every trade on it pays the pool. AFK turns your SOL into a share of any pool in one click, so a cut of every trade lands on your farm while you're away.</p>
+      <form class="find" id="find" autocomplete="off">
+        <input id="findIn" type="text" spellcheck="false" placeholder="Paste a coin address or search a name" aria-label="Coin address or name">
+        <button class="btn grass" type="submit">Find a farm</button>
+      </form>
+      <div class="ca-pill" id="caPill" hidden></div>
+      <ul class="trust">
+        <li>Your wallet signs everything</li>
+        <li>Official PumpSwap pools only</li>
+        <li>Harvest any time</li>
+      </ul>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="zz"><b>z</b><b>z</b><b>Z</b></div>
+      <div class="isle">
+        <img class="isle-img" src="/img/island.png" alt="" width="979" height="968">
+        <img class="pop p1" src="/img/coin.png" alt=""><img class="pop p2" src="/img/coin2.png" alt=""><img class="pop p3" src="/img/coin.png" alt=""><img class="pop p4" src="/img/coin2.png" alt="">
+        <span class="isle-shadow"></span>
+      </div>
+      <div class="top-farm" id="topFarm" aria-live="polite">
+        <div class="tf-head"><span>Best farm right now</span><span class="live"><i class="pulse"></i>Live</span></div>
+        <div class="tf-body"><div class="skel-line w60"></div><div class="skel-line w40"></div><div class="skel-line w80"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="hud" aria-label="Market">
+    <div class="wrap hud-row" id="stats">
+      <div class="slot"><span>Farms on the board</span><b data-k="n">—</b></div>
+      <div class="slot"><span>SOL in these pools</span><b data-k="tvl">—</b></div>
+      <div class="slot"><span>Traded in 24h</span><b data-k="vol">—</b></div>
+      <div class="slot"><span>Paid to farmers in 24h</span><b data-k="fees">—</b></div>
+    </div>
+  </div>
+  <div class="ground" aria-hidden="true"></div>
+</section>
+
+<div class="ticker" id="tickerBox" hidden aria-label="Farms on the board"><div class="tk-track" id="ticker"></div></div>
+
+<main>
+  <section class="sec" id="farms">
+    <div class="wrap">
+      <div class="head">
+        <div><p class="eyebrow">01 · The farms</p><h2>Pools paying the most right now</h2><p class="sub">Every real pump.fun pool on PumpSwap, checked on-chain and ranked by what it paid the people providing its liquidity over the last 24 hours.</p></div>
+        <div class="updated" id="updated"><i class="pulse"></i><span>Loading</span></div>
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="size" role="group" aria-label="Pool size">
+          <button data-m="0" type="button">All sizes</button>
+          <button data-m="25" class="on" type="button">25+ SOL</button>
+          <button data-m="100" type="button">100+ SOL</button>
+          <button data-m="500" type="button">500+ SOL</button>
+        </div>
+        <label class="search"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 2a5 5 0 1 0 3.2 8.9l3 3 1.1-1.1-3-3A5 5 0 0 0 7 2zm0 1.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8z"/></svg><input id="q" type="search" placeholder="Filter by name" aria-label="Filter farms"></label>
+      </div>
+      <div class="table" id="table">
+        <div class="tr th" id="th">
+          <span class="c-farm">Farm</span>
+          <button class="c-yield sort on" data-s="yield" type="button" title="LP fees paid in the last 24h divided by the pool's size">Yield / day<i></i></button>
+          <button class="c-tvl sort" data-s="tvl" type="button">Pool size<i></i></button>
+          <button class="c-vol sort" data-s="vol" type="button">24h volume<i></i></button>
+          <button class="c-fee sort" data-s="fee" type="button">LP fee<i></i></button>
+          <button class="c-chg sort" data-s="chg" type="button">24h<i></i></button>
+          <span class="c-go"></span>
+        </div>
+        <div id="rows"></div>
+      </div>
+      <p class="note">Yield / day is what 1 SOL added at today's price would have earned in LP fees over the last 24 hours. It is a pace, not a promise.</p>
+    </div>
+  </section>
+
+  <section class="sec calc" id="calc">
+    <div class="wrap">
+      <div class="head"><div><p class="eyebrow">02 · Farm calculator</p><h2>What would a farm pay you?</h2></div></div>
+      <div class="calc-grid">
+        <div class="calc-in">
+          <span class="lbl">Farm</span>
+          <div class="pick" id="cPick"><button type="button" class="pick-btn" id="cPickBtn" aria-haspopup="listbox"><span class="pick-cur" id="cCur">Loading farms…</span><i></i></button><div class="pick-list" id="cList" role="listbox" hidden></div></div>
+          <span class="lbl">You plant</span>
+          <div class="chips big" id="cAmts"><button class="chip" type="button" data-v="0.5">0.5</button><button class="chip on" type="button" data-v="1">1 SOL</button><button class="chip" type="button" data-v="5">5</button><button class="chip" type="button" data-v="10">10</button><button class="chip" type="button" data-v="25">25</button></div>
+          <div class="field sm"><div class="row2"><input id="cAmt" inputmode="decimal" placeholder="Other amount" aria-label="SOL amount"><span class="unit">SOL</span></div></div>
+          <div class="lvl-preview" id="cLvl"></div>
+        </div>
+        <div class="calc-out" id="cOut">
+          <div class="co-big"><span>At the last 24h pace</span><b id="cDay">—</b><em>SOL a day</em></div>
+          <div class="co-row"><div><span>A week</span><b id="cWeek">—</b></div><div><span>A month</span><b id="cMonth">—</b></div><div><span>Your share</span><b id="cShare">—</b></div></div>
+          <div class="sim" id="cSim"></div>
+          <button class="btn grass go" id="cGo" type="button">Plant on this farm</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="mine">
+    <div class="wrap">
+      <div class="head">
+        <div><p class="eyebrow">03 · My farms</p><h2>Everything you have planted</h2></div>
+        <button class="btn stone sm" id="refreshPos" type="button" hidden>Refresh</button>
+      </div>
+      <div id="pos"></div>
+    </div>
+  </section>
+
+  <section class="sec night" id="how">
+    <div class="stars" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="head"><div><p class="eyebrow">04 · How it works</p><h2>Trades go in. Your chest fills up.</h2><p class="sub">An AFK farm is a liquidity position on a PumpSwap pool. You never have to be online for it to work.</p></div></div>
+      <div class="machine" aria-hidden="true">
+        <div class="m-trades">
+          <span class="tr-chip b" style="--d:0s">BUY</span><span class="tr-chip s" style="--d:.9s">SELL</span><span class="tr-chip b" style="--d:1.8s">BUY</span><span class="tr-chip b" style="--d:2.7s">BUY</span><span class="tr-chip s" style="--d:3.6s">SELL</span>
+        </div>
+        <div class="m-pool"><div class="m-water"><i></i><i></i><i></i></div><span class="m-tag">The pool</span></div>
+        <div class="m-flow"><img src="/img/coin.png" alt="" style="--d:0s"><img src="/img/coin2.png" alt="" style="--d:.7s"><img src="/img/coin.png" alt="" style="--d:1.4s"><img src="/img/coin2.png" alt="" style="--d:2.1s"><span class="m-fee" id="mFee">0.20% of every trade</span></div>
+        <div class="m-you"><img class="m-chest" src="/img/chest.png" alt=""><span class="m-tag">Your farm</span></div>
+      </div>
+      <ol class="steps">
+        <li><b class="num">1</b><h3>Pick a farm</h3><p>Every pump.fun coin that graduates gets a PumpSwap pool. AFK checks each one on-chain and ranks the real ones by what they paid liquidity providers in the last day.</p></li>
+        <li><b class="num">2</b><h3>Plant from SOL</h3><p>AFK swaps about half your SOL into the coin and adds both sides to the pool in the same transaction. If the price moves past your limit, nothing happens and you keep your SOL.</p></li>
+        <li><b class="num">3</b><h3>Go AFK</h3><p>Every trade leaves an LP fee in the pool and your share of it grows. Nothing to claim, nothing to babysit. The LP tokens sit in your own wallet.</p></li>
+        <li><b class="num">4</b><h3>Harvest any time</h3><p>Withdraw part or all of it whenever you want, as SOL or as SOL plus the coin. It works here or on pump.fun.</p></li>
+      </ol>
+      <div class="oneclick">
+        <div class="oc-head"><h3>What one click does</h3><span class="chip-tag">One transaction</span></div>
+        <ol class="oc-list">
+          <li><b>1</b><span>Checks the pool on-chain and simulates the whole thing first</span></li>
+          <li><b>2</b><span>Swaps about half your SOL into the coin</span></li>
+          <li><b>3</b><span>Adds SOL and coin to the pool together</span></li>
+          <li><b>4</b><span>Sends the pool's LP tokens to your wallet</span></li>
+          <li><b>5</b><span>Returns any SOL left over</span></li>
+        </ol>
+        <p class="oc-fine">AFK never holds your keys or your coins. Your wallet signs, and you can see every step on Solscan.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="levels">
+    <div class="wrap">
+      <div class="head"><div><p class="eyebrow">05 · Farm levels</p><h2>Your farm grows with what you plant</h2><p class="sub">Each position gets a level from its size. Levels are just for fun: they don't change what you earn.</p></div></div>
+      <div class="levels" id="lvlList"></div>
+    </div>
+  </section>
+
+  <section class="sec risks" id="risks">
+    <div class="wrap">
+      <div class="head"><div><p class="eyebrow">06 · Before you plant</p><h2>What can go wrong</h2></div></div>
+      <div class="risk-grid">
+        <div class="risk"><b>Price moves</b><p>A position is half SOL and half coin. If the coin falls, you end up holding more of it, so you can get back less SOL than you put in even after fees. Every farm shows what your position would be worth after a price move before you plant.</p></div>
+        <div class="risk"><b>Coins can die</b><p>Most memecoins go to zero eventually. Fees earned on a coin that collapses rarely make up for the drop. Only plant what you're fine losing.</p></div>
+        <div class="risk"><b>The fee tier</b><p>pump.fun pools pay LPs 0.20% of each trade once the coin is above about 420 SOL market cap, and 0.02% below it. AFK reads each pool's live rate from PumpSwap.</p></div>
+        <div class="risk"><b>Yield is a pace</b><p>Yield / day is the last 24 hours, not a forecast. Volume changes every minute, and your share shrinks when others add after you.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="wrap faq-grid">
+      <div class="faq-side">
+        <p class="eyebrow">07 · FAQ</p><h2>The obvious questions</h2>
+        <img class="faq-art" src="/img/chest.png" alt="">
+        <p class="side-note">Still not sure? Paste a coin address at the top and look at its farm before you plant anything.</p>
+        <a class="btn grass" href="#top">Find a farm</a>
+      </div>
+      <div class="faq-list">
+        <details open><summary>Where does the money come from?</summary><p>From trading fees. Every PumpSwap trade pays a fee and part of it, the LP fee, stays in the pool for the people providing its liquidity. Your share of the pool is your share of those fees. AFK reads each pool's current rate from PumpSwap's on-chain fee config.</p></details>
+        <details><summary>Can I lose money?</summary><p>Yes. Your position holds half SOL and half coin. If the coin falls, the pool sells you more of it on the way down, so you can end up with less SOL than you put in, even after fees. This is called impermanent loss and it is the main risk.</p></details>
+        <details><summary>Does AFK hold my funds?</summary><p>No. AFK builds a standard PumpSwap transaction, checks it in a simulation, and your own wallet signs it. LP tokens go straight to your wallet. AFK has no contract of its own and cannot move your funds.</p></details>
+        <details><summary>What does AFK charge?</summary><p id="feeFaq">Planting and harvesting are free on AFK. You only pay Solana network fees and a small, refundable rent for new token accounts.</p></details>
+        <details><summary>Do I need to claim anything?</summary><p>No. Fees stay in the pool and your LP tokens are worth more of it as trades come in. When you harvest, you get your share including the fees.</p></details>
+        <details><summary>Which pools can I farm?</summary><p>Canonical PumpSwap pools of pump.fun coins paired with SOL. AFK only lists pools it finds and checks on-chain, so copycat pools never make the board. Paste any coin address to find its pool. Coins still on the bonding curve have no pool yet.</p></details>
+        <details><summary>Why did my plant fail?</summary><p>Usually the price moved more than your limit between the quote and the transaction landing. Nothing is taken except the network fee. Try again, or allow a bigger price move on fast coins.</p></details>
+        <details><summary>Can I use coins I already hold?</summary><p>Yes. Open the farm and use "Pair coins": AFK adds the coins you hold together with the matching SOL, without buying more.</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="ground thin" aria-hidden="true"></div>
+  <div class="wrap foot-in">
+    <a href="#top" class="brand sm"><img src="/img/logo.png" alt="AFK" width="74" height="25"></a>
+    <span>Every pool is a farm. Go AFK.</span>
+    <span class="foot-links" id="footLinks"></span>
+  </div>
+</footer>
+
+<div class="veil" id="veil" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Farm">
+  <button class="x" id="dClose" type="button" aria-label="Close">×</button>
+  <div class="d-in" id="dIn"></div>
+</aside>
+
+<div class="modal" id="wModal" hidden>
+  <div class="m-card" role="dialog" aria-label="Wallet">
+    <button class="x" id="wClose" type="button" aria-label="Close">×</button>
+    <h3>Connect a wallet</h3>
+    <div id="wList"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/js/afk.js?v=1" defer></script>
+</body>
+</html>

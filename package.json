@@ -1,0 +1,13 @@
+{
+  "name": "afk",
+  "private": true,
+  "description": "Every pool is a farm. Go AFK. One-click liquidity for any pump.fun PumpSwap pool.",
+  "engines": { "node": "22.x" },
+  "dependencies": {
+    "@pump-fun/pump-swap-sdk": "1.20.0",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.2",
+    "bn.js": "^5.2.2"
+  },
+  "overrides": { "rpc-websockets": { "uuid": "^11.1.0" } }
+}
