@@ -20,7 +20,8 @@
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <link rel="preload" href="/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/pixelify.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/afk.css?v=2">
+<link rel="stylesheet" href="/css/afk.css?v=3">
+<script>document.documentElement.classList.add('w');setTimeout(function(){if(!window.__world)document.documentElement.classList.remove('w')},3000)</script>
 </head>
 <body>
 <header class="nav top" id="nav">
@@ -32,28 +33,37 @@
     <a href="#faq">FAQ</a>
   </nav>
   <div class="nav-r"><button class="btn wallet" id="walletBtn" type="button"><i class="dot"></i><span id="walletLabel">Connect wallet</span></button></div>
+  <div class="xp" aria-hidden="true"><i id="xpFill"></i><b id="xpLvl">0</b></div>
 </header>
 
 <section class="hero" id="top">
-  <div class="clouds" aria-hidden="true"><i class="cl c1"></i><i class="cl c2"></i><i class="cl c3"></i><i class="cl c4"></i></div>
+  <div class="sun" data-speed=".35" aria-hidden="true"></div>
+  <div class="clouds" data-speed=".22" aria-hidden="true"><i class="cl c1"></i><i class="cl c2"></i><i class="cl c3"></i><i class="cl c4"></i></div>
+  <div class="hills" data-speed=".1" aria-hidden="true"></div>
+  <div class="floaters" aria-hidden="true">
+    <span class="fb f1" data-speed="-.35" data-mouse="18"><img src="/img/b-gold.png" alt=""></span>
+    <span class="fb f2" data-speed="-.2" data-mouse="10"><img src="/img/b-grass.png" alt=""></span>
+    <span class="fb f3" data-speed="-.45" data-mouse="24"><img src="/img/b-leaves.png" alt=""></span>
+    <span class="fb f4" data-speed="-.15" data-mouse="8"><img src="/img/b-water.png" alt=""></span>
+  </div>
   <div class="hero-in">
     <div class="hero-copy">
-      <p class="kicker"><i class="pulse"></i><span id="kickN">Reading PumpSwap…</span></p>
-      <h1>Every pool is a farm.<span>Go AFK.</span></h1>
-      <p class="lede">One click turns SOL into a share of any pump.fun pool. Every trade pays your farm.</p>
-      <form class="find" id="find" autocomplete="off">
+      <p class="kicker rv"><i class="pulse"></i><span id="kickN">Reading PumpSwap…</span></p>
+      <h1 class="drop-title">Every pool is a farm. <span class="l2">Go AFK.</span></h1>
+      <p class="lede rv" style="--d:3">One click turns SOL into a share of any pump.fun pool. Every trade pays your farm.</p>
+      <form class="find rv" style="--d:4" id="find" autocomplete="off">
         <input id="findIn" type="text" spellcheck="false" placeholder="Paste a coin address or search a name" aria-label="Coin address or name">
         <button class="btn grass" type="submit">Find a farm</button>
       </form>
       <div class="ca-pill" id="caPill" hidden></div>
     </div>
-    <div class="hero-art">
+    <div class="hero-art" data-speed=".08">
       <div class="zz" aria-hidden="true"><b>z</b><b>z</b><b>Z</b></div>
-      <div class="isle" aria-hidden="true">
+      <div class="isle" data-mouse="12" aria-hidden="true">
         <img class="isle-img" src="/img/island.png" alt="" width="979" height="968">
         <img class="pop p1" src="/img/coin.png" alt=""><img class="pop p2" src="/img/coin2.png" alt=""><img class="pop p3" src="/img/coin.png" alt=""><img class="pop p4" src="/img/coin2.png" alt="">
       </div>
-      <div class="flip-card" id="flip" aria-live="polite">
+      <div class="flip-card rv" style="--d:5" id="flip" aria-live="polite">
         <div class="fc-head"><span>Live farms</span><span class="fc-nav"><button type="button" id="fcPrev" aria-label="Previous farm">‹</button><b id="fcIdx">–</b><button type="button" id="fcNext" aria-label="Next farm">›</button></span></div>
         <div class="fc-stage"><div class="fc-face" id="fcFace"><div class="skel-line w60"></div><div class="skel-line w40"></div><div class="skel-line w80"></div></div></div>
         <div class="fc-bar"><i id="fcProg"></i></div>
@@ -62,10 +72,10 @@
   </div>
   <div class="hud" aria-label="Market">
     <div class="wrap hud-row" id="stats">
-      <div class="slot"><span>Farms live</span><b class="odo" data-k="n">0</b></div>
-      <div class="slot"><span>SOL in pools</span><b class="odo" data-k="tvl">0</b></div>
-      <div class="slot"><span>Traded 24h · SOL</span><b class="odo" data-k="vol">0</b></div>
-      <div class="slot"><span>Paid to farmers 24h · SOL</span><b class="odo" data-k="fees">0</b></div>
+      <div class="slot rv" style="--d:1"><img class="ico" src="/img/b-grass.png" alt=""><div><span>Farms live</span><b class="odo" data-k="n">0</b></div></div>
+      <div class="slot rv" style="--d:2"><img class="ico" src="/img/b-water.png" alt=""><div><span>SOL in pools</span><b class="odo" data-k="tvl">0</b></div></div>
+      <div class="slot rv" style="--d:3"><img class="ico coin" src="/img/coin.png" alt=""><div><span>Traded 24h · SOL</span><b class="odo" data-k="vol">0</b></div></div>
+      <div class="slot rv" style="--d:4"><img class="ico" src="/img/b-gold.png" alt=""><div><span>Paid to farmers 24h · SOL</span><b class="odo" data-k="fees">0</b></div></div>
     </div>
   </div>
   <div class="ground" aria-hidden="true"></div>
@@ -74,13 +84,18 @@
 <div class="ticker" id="tickerBox" hidden aria-label="Farms on the board"><div class="tk-track" id="ticker"></div></div>
 
 <main>
-  <section class="sec" id="farms">
+  <section class="sec meadow" id="farms">
+    <div class="deco" aria-hidden="true">
+      <span class="fb d1" data-speed="-.18"><img src="/img/b-grass.png" alt=""></span>
+      <span class="fb d2" data-speed="-.32"><img src="/img/b-dirt.png" alt=""></span>
+      <span class="fb d3" data-speed="-.24"><img src="/img/b-leaves.png" alt=""></span>
+    </div>
     <div class="wrap">
       <div class="head">
-        <div><p class="eyebrow">The farms</p><h2>Paying the most right now</h2></div>
-        <div class="updated" id="updated"><i class="pulse"></i><span>Loading</span></div>
+        <div><p class="eyebrow rv">The farms</p><h2 class="drop-title">Paying the most right now</h2></div>
+        <div class="updated rv" id="updated"><i class="pulse"></i><span>Loading</span></div>
       </div>
-      <div class="toolbar">
+      <div class="toolbar rv" style="--d:1">
         <div class="seg" id="size" role="group" aria-label="Pool size">
           <button data-m="0" type="button">All</button>
           <button data-m="25" class="on" type="button">25+ SOL</button>
@@ -89,7 +104,7 @@
         </div>
         <label class="search"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7 2a5 5 0 1 0 3.2 8.9l3 3 1.1-1.1-3-3A5 5 0 0 0 7 2zm0 1.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8z"/></svg><input id="q" type="search" placeholder="Filter by name" aria-label="Filter farms"></label>
       </div>
-      <div class="table" id="table">
+      <div class="table rv" style="--d:2" id="table">
         <div class="tr th" id="th">
           <span class="c-farm">Farm</span>
           <button class="c-yield sort on" data-s="yield" type="button" title="LP fees paid in the last 24h divided by the pool's size: what 1 SOL would have earned">Yield / day<i></i></button>
@@ -102,21 +117,24 @@
         <div id="rows"></div>
       </div>
     </div>
+    <div class="dusk" aria-hidden="true"></div>
   </section>
 
   <section class="sec night" id="live">
     <div class="stars" aria-hidden="true"></div>
+    <div class="moon" data-speed=".3" aria-hidden="true"></div>
+    <div class="flies" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="wrap">
       <div class="head">
-        <div><p class="eyebrow">Live trades</p><h2>Every trade pays the farm</h2></div>
-        <div class="updated light" id="liveUpd"><i class="pulse"></i><span>Waiting for trades</span></div>
+        <div><p class="eyebrow rv">Live trades</p><h2 class="drop-title">Every trade pays the farm</h2></div>
+        <div class="updated light rv" id="liveUpd"><i class="pulse"></i><span>Waiting for trades</span></div>
       </div>
-      <div class="farm-tabs" id="liveTabs" role="tablist" aria-label="Pick a farm"></div>
+      <div class="farm-tabs rv" style="--d:1" id="liveTabs" role="tablist" aria-label="Pick a farm"></div>
       <div class="live-grid">
-        <div class="feed" id="feed" aria-live="polite"></div>
-        <div class="live-side">
+        <div class="feed rv" style="--d:2" id="feed" aria-live="polite"></div>
+        <div class="live-side rv" style="--d:3">
           <div class="pool-viz" aria-hidden="true">
-            <div class="m-water"><i></i><i></i><i></i></div>
+            <div class="rim"><div class="m-water"><i></i><i></i><i></i></div></div>
             <div class="drops" id="drops"></div>
             <img class="m-chest" src="/img/chest.png" alt="">
           </div>
@@ -128,28 +146,31 @@
         </div>
       </div>
       <ol class="flow">
-        <li><b>1</b>Pick a farm</li>
-        <li><b>2</b>Plant SOL in one click</li>
-        <li><b>3</b>Go AFK, trades pay you</li>
-        <li><b>4</b>Harvest any time</li>
+        <li class="rv" style="--d:1"><b>1</b>Pick a farm</li>
+        <li class="rv" style="--d:2"><b>2</b>Plant SOL in one click</li>
+        <li class="rv" style="--d:3"><b>3</b>Go AFK, trades pay you</li>
+        <li class="rv" style="--d:4"><b>4</b>Harvest any time</li>
       </ol>
     </div>
+    <div class="edge e-ground" aria-hidden="true"></div>
   </section>
 
-  <section class="sec calc" id="calc">
+  <section class="sec layer planks calc" id="calc">
+    <div class="torch t-l" aria-hidden="true"></div><div class="torch t-r" aria-hidden="true"></div>
     <div class="wrap">
-      <div class="head"><div><p class="eyebrow">Calculator</p><h2>Drag to see what a farm pays</h2></div></div>
+      <div class="head"><div><p class="eyebrow rv">Calculator</p><h2 class="drop-title">Drag to see what a farm pays</h2></div></div>
       <div class="calc-grid">
-        <div class="calc-in">
+        <div class="calc-in panel rv" style="--d:1">
           <span class="lbl">Farm</span>
-          <div class="pick" id="cPick"><button type="button" class="pick-btn" id="cPickBtn" aria-haspopup="listbox"><span class="pick-cur" id="cCur">Loading farms…</span><i></i></button><div class="pick-list" id="cList" role="listbox" hidden></div></div>
+          <div class="pick" id="cPick"><button type="button" class="pick-btn" id="cPickBtn" aria-haspopup="listbox"><span class="pick-cur" id="cCur">Loading farms…</span><i></i></button><div class="pick-list" id="cList" role="listbox" hidden data-lenis-prevent></div></div>
           <span class="lbl">You plant <b class="lbl-v" id="cAmtV">1 SOL</b></span>
           <input type="range" id="cRange" min="0" max="23" step="1" value="7" aria-label="SOL amount">
           <div class="range-ticks"><span>0.1</span><span>1</span><span>10</span><span>100</span></div>
           <span class="lbl">Top farms right now</span>
           <div class="qpick" id="cQuick"></div>
         </div>
-        <div class="calc-out" id="cOut">
+        <div class="craft-arrow rv" style="--d:2" aria-hidden="true"><i></i></div>
+        <div class="calc-out panel rv" style="--d:3" id="cOut">
           <div class="co-big"><span>At the last 24h pace</span><b id="cDay">—</b><em>SOL a day</em></div>
           <div class="co-row"><div><span>A week</span><b id="cWeek">—</b></div><div><span>A month</span><b id="cMonth">—</b></div><div><span>Your share</span><b id="cShare">—</b></div></div>
           <div class="sim" id="cSim"></div>
@@ -157,38 +178,42 @@
         </div>
       </div>
     </div>
+    <div class="edge e-stone" aria-hidden="true"></div>
   </section>
 
-  <section class="sec" id="mine">
+  <section class="sec layer cave" id="mine">
+    <div class="ores" aria-hidden="true"><i data-speed=".12"></i><i data-speed=".2"></i><i data-speed=".08"></i><i data-speed=".16"></i><i data-speed=".1"></i></div>
     <div class="wrap">
       <div class="head">
-        <div><p class="eyebrow">My farms</p><h2>Everything you planted</h2></div>
+        <div><p class="eyebrow rv">My farms</p><h2 class="drop-title">Everything you planted</h2></div>
         <button class="btn stone sm" id="refreshPos" type="button" hidden>Refresh</button>
       </div>
-      <div id="pos"></div>
+      <div id="pos" class="rv" style="--d:1"></div>
     </div>
+    <div class="edge e-deep" aria-hidden="true"></div>
   </section>
 
-  <section class="sec" id="faq">
+  <section class="sec layer deep" id="faq">
+    <div class="torch t-r" aria-hidden="true"></div>
     <div class="wrap faq-grid">
       <div class="faq-side">
-        <p class="eyebrow">FAQ</p><h2>Quick answers</h2>
-        <img class="faq-art" src="/img/chest.png" alt="">
+        <p class="eyebrow rv">FAQ</p><h2 class="drop-title">Quick answers</h2>
+        <img class="faq-art rv" style="--d:2" src="/img/chest.png" alt="">
       </div>
       <div class="faq-list">
-        <details open><summary>Where does the money come from?</summary><p>Trading fees. Part of every PumpSwap trade stays in the pool for its liquidity providers. Your share of the pool is your share of those fees.</p></details>
-        <details><summary>Can I lose money?</summary><p>Yes. Your farm is half SOL, half coin. If the coin drops you can get back less SOL than you put in, even after fees. Each farm shows this before you plant.</p></details>
-        <details><summary>Does AFK hold my funds?</summary><p>No. Your wallet signs a standard PumpSwap transaction and the LP tokens go to your wallet.</p></details>
-        <details><summary>What does AFK charge?</summary><p id="feeFaq">Nothing. Only Solana network fees and refundable account rent.</p></details>
-        <details><summary>Is yield / day a promise?</summary><p>No. It's the last 24 hours of real fees divided by the pool size. Volume changes every minute.</p></details>
-        <details><summary>Which pools work?</summary><p>Official PumpSwap pools of pump.fun coins paired with SOL. Paste any coin address to find its pool.</p></details>
+        <details class="rv" style="--d:1" open><summary>Where does the money come from?</summary><p>Trading fees. Part of every PumpSwap trade stays in the pool for its liquidity providers. Your share of the pool is your share of those fees.</p></details>
+        <details class="rv" style="--d:2"><summary>Can I lose money?</summary><p>Yes. Your farm is half SOL, half coin. If the coin drops you can get back less SOL than you put in, even after fees. Each farm shows this before you plant.</p></details>
+        <details class="rv" style="--d:3"><summary>Does AFK hold my funds?</summary><p>No. Your wallet signs a standard PumpSwap transaction and the LP tokens go to your wallet.</p></details>
+        <details class="rv" style="--d:4"><summary>What does AFK charge?</summary><p id="feeFaq">Nothing. Only Solana network fees and refundable account rent.</p></details>
+        <details class="rv" style="--d:5"><summary>Is yield / day a promise?</summary><p>No. It's the last 24 hours of real fees divided by the pool size. Volume changes every minute.</p></details>
+        <details class="rv" style="--d:6"><summary>Which pools work?</summary><p>Official PumpSwap pools of pump.fun coins paired with SOL. Paste any coin address to find its pool.</p></details>
       </div>
     </div>
+    <div class="edge e-bed" aria-hidden="true"></div>
   </section>
 </main>
 
 <footer class="foot">
-  <div class="ground thin" aria-hidden="true"></div>
   <div class="wrap foot-in">
     <span>Every pool is a farm. Go AFK.</span>
     <span class="foot-links" id="footLinks"></span>
@@ -196,12 +221,12 @@
 </footer>
 
 <div class="veil" id="veil" hidden></div>
-<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Farm">
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Farm" data-lenis-prevent>
   <button class="x" id="dClose" type="button" aria-label="Close">×</button>
   <div class="d-in" id="dIn"></div>
 </aside>
 
-<div class="modal" id="wModal" hidden>
+<div class="modal" id="wModal" hidden data-lenis-prevent>
   <div class="m-card" role="dialog" aria-label="Wallet">
     <button class="x" id="wClose" type="button" aria-label="Close">×</button>
     <h3>Connect a wallet</h3>
@@ -209,7 +234,10 @@
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="parts" id="parts" aria-hidden="true"></div>
 
-<script src="/js/afk.js?v=2" defer></script>
+<script src="/js/lenis.min.js?v=1" defer></script>
+<script src="/js/afk.js?v=3" defer></script>
+<script src="/js/world.js?v=1" defer></script>
 </body>
 </html>
