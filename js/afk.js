@@ -642,9 +642,10 @@
         $('#caPill').hidden = false;
         $('#caCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(S.cfg.ca).then(() => toast('Address copied')); };
       }
-      $('#footLinks').innerHTML = (xh ? `<a href="${esc(xh)}" target="_blank" rel="noopener">X</a>` : '') + (S.cfg.ca ? `<a href="https://dexscreener.com/solana/${esc(S.cfg.ca)}" target="_blank" rel="noopener">Chart</a>` : '') + `<a href="#faq">FAQ</a>`;
+      $('#footLinks').innerHTML = (xh ? `<a href="${esc(xh)}" target="_blank" rel="noopener">X</a>` : '') + (S.cfg.ca ? `<a href="https://dexscreener.com/solana/${esc(S.cfg.ca)}" target="_blank" rel="noopener">Chart</a>` : '');
+      $('#foot').hidden = !(xh || S.cfg.ca);
       if (S.cfg.feeBps) $('#feeFaq').innerHTML = `${(S.cfg.feeBps / 100).toFixed(1)}% of each plant goes to AFK${S.cfg.jug ? ` (<code>${esc(S.cfg.jug)}</code>)` : ''}. Harvesting is free. You also pay Solana network fees and a small, refundable rent for new token accounts.`;
-    } catch (e) { S.cfg = { feeBps: 0 }; $('#footLinks').innerHTML = `<a href="#faq">FAQ</a>`; }
+    } catch (e) { S.cfg = { feeBps: 0 }; }
   }
   const nav = $('#nav'), hero = $('#top');
   const onScroll = () => {
