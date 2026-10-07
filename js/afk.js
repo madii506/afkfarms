@@ -277,12 +277,12 @@
     e.preventDefault(); const v = $('#findIn').value.trim(); if (!v) return;
     if (isAddr(v)) { openPool(v); return; }
     S.q = v; $('#q').value = v; S.min = 0; $$('#size button').forEach(x => x.classList.toggle('on', x.dataset.m === '0')); renderPools();
-    document.getElementById('farms').scrollIntoView({ behavior: 'smooth' });
+    const fe = document.getElementById('farms'); if (window.__scrollTo) window.__scrollTo(fe); else fe.scrollIntoView({ behavior: 'smooth' });
   });
 
   /* ---------- the farm drawer ---------- */
-  function openDrawer() { $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); $('#veil').hidden = false; document.documentElement.style.overflow = 'hidden'; }
-  function closeDrawer() { if (S.busy) return; $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#veil').hidden = true; document.documentElement.style.overflow = ''; S.pool = null; }
+  function openDrawer() { try { window.__lenis && window.__lenis.stop(); } catch (e) { } $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); $('#veil').hidden = false; document.documentElement.style.overflow = 'hidden'; }
+  function closeDrawer() { if (S.busy) return; $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#veil').hidden = true; document.documentElement.style.overflow = ''; S.pool = null; try { window.__lenis && window.__lenis.start(); } catch (e) { } }
   $('#dClose').addEventListener('click', closeDrawer); $('#veil').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#wModal').hidden) $('#wModal').hidden = true; else if (S.pool) closeDrawer(); } });
 
@@ -509,6 +509,7 @@
     odo($('#cDay'), tiny(day)); odo($('#cWeek'), tiny(day * 7)); odo($('#cMonth'), tiny(day * 30)); odo($('#cShare'), (share * 100).toFixed(share < 0.001 ? 4 : 3) + '%');
     const sym = p.symbol ? '$' + p.symbol : 'the coin';
     $('#cSim').innerHTML = priceTable(dep, v, sym);
+    const ar = $('.craft-arrow'); if (ar) { ar.classList.remove('go'); void ar.offsetWidth; ar.classList.add('go'); }
   }
   const range = $('#cRange');
   range.max = AMTS.length - 1; range.value = AMTS.indexOf(1);
