@@ -15,6 +15,7 @@
  *   POST /api/tx                           build + simulate: {kind:'add'|'add2'|'remove', ...}
  *   POST /api/send                         relay a signed transaction
  *   GET  /api/status?sig=                  confirmation status
+ *   GET  /api/trades?pool=                 the pool's latest real trades (GeckoTerminal)
  */
 const {
   Connection, PublicKey, TransactionMessage, VersionedTransaction, ComputeBudgetProgram, SystemProgram,
@@ -565,6 +566,23 @@ async function positions(userStr) {
   return { positions: out, solUsd };
 }
 
+// Real recent trades of one pool, from GeckoTerminal (cached 10 s). SOL side found by the wSOL mint.
+async function trades(poolStr) {
+  const pool = pk(poolStr, 'pool').toBase58();
+  return cached('tr:' + pool, 10000, async () => {
+    const j = await getJson('https://api.geckoterminal.com/api/v2/networks/solana/pools/' + pool + '/trades', 6500);
+    const W = NATIVE_MINT.toBase58();
+    return (j.data || []).slice(0, 40).map(t => {
+      const a = t.attributes || {};
+      let kind = a.kind, solAmt = null;
+      if (a.from_token_address === W) { kind = 'buy'; solAmt = +a.from_token_amount; }
+      else if (a.to_token_address === W) { kind = 'sell'; solAmt = +a.to_token_amount; }
+      else solAmt = kind === 'buy' ? +a.from_token_amount : +a.to_token_amount;
+      return { kind, sol: solAmt, usd: +a.volume_in_usd || 0, t: Date.parse(a.block_timestamp) || 0, tx: a.tx_hash || '' };
+    }).filter(x => x.sol > 0 && isFinite(x.sol));
+  });
+}
+
 /* ---------------- router ---------------- */
 module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {});
@@ -576,6 +594,7 @@ module.exports = async (req, res) => {
     if (path === 'pools') return send(res, 200, { ok: true, ...(await pools()) }, 'public, s-maxage=60, stale-while-revalidate=240');
     if (path === 'pool') return send(res, 200, { ok: true, pool: await poolOne(q.get('id'), q.get('user')) }, q.get('user') ? 'no-store' : 'public, s-maxage=10');
     if (path === 'positions') return send(res, 200, { ok: true, ...(await positions(q.get('user'))) });
+    if (path === 'trades') return send(res, 200, { ok: true, trades: await trades(q.get('pool')) }, 'public, s-maxage=8, stale-while-revalidate=30');
     if (path === 'jug') {
       if (!CONFIG.jug) return send(res, 200, { ok: true, jug: '', sol: 0 });
       const l = await rpc(c => c.getBalance(new PublicKey(CONFIG.jug)));
